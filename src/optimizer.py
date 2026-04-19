@@ -8,7 +8,7 @@ from src.stopping_criterion import StoppingCriterion
 def minimize(
     fun: callable,
     grad: callable,
-    proj: callable | None,
+    proj: callable,
     x0: np.ndarray,
     eta0: float,
     gamma: float,
@@ -16,7 +16,7 @@ def minimize(
     max_iter: int = 10_000_000,
     verbose: bool = True,
     report_interval: int = 100,
-    true_grad: callable | None = None,
+    true_grad: callable = None
 ):
     if stopping_criterion.requires_bounded_domain and proj is None:
         raise ValueError("This stopping criterion requires projection function (proj).")
