@@ -88,6 +88,11 @@ class ObservableConvexCertificate(StoppingCriterion):
         is_stop = U_t < self.eps
 
         return is_stop, U_t
+    
+    def reset(self):
+        self.Sigma_t = 0.0
+        self.tel_sum = 0.0
+
 
 
 class ExactNonconvexCertificate(StoppingCriterion):
