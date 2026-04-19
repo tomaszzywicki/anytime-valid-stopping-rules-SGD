@@ -1,6 +1,17 @@
 import numpy as np
-from typing import Tuple, Callable
+from typing import Tuple, Callable, Optional
 from scipy.special import expit
+from dataclasses import dataclass
+
+
+@dataclass
+class OptimizationProblem:
+    fun: Callable[[np.ndarray], float]
+    true_grad: Callable[[np.ndarray], np.ndarray]
+    stoch_grad: Callable[[np.ndarray], np.ndarray]
+    proj: Optional[Callable[[np.ndarray], np.ndarray]] = None
+    L: float = 0.0  # Lipschitz
+    R: float = np.inf  # Space ball
 
 
 def _euclidean_projection(x: np.ndarray, center: np.ndarray, R: float) -> np.ndarray:
@@ -12,7 +23,7 @@ def _euclidean_projection(x: np.ndarray, center: np.ndarray, R: float) -> np.nda
 
 
 def make_quadratic(H: np.ndarray, sigma: float, center: np.ndarray, R=np.inf):
-    def quadratic(x: np.ndarray) -> float:
+    def fun(x: np.ndarray) -> float:
         return 0.5 * x @ H @ x.T
 
     def true_grad(x: np.ndarray) -> np.ndarray:
@@ -25,7 +36,11 @@ def make_quadratic(H: np.ndarray, sigma: float, center: np.ndarray, R=np.inf):
     def proj(x: np.ndarray):
         return _euclidean_projection(x, center, R)
 
-    return quadratic, true_grad, stoch_grad, None if R == np.inf else proj
+    L = np.max(np.linalg.eigvals(H))
+
+    return OptimizationProblem(
+        fun=fun, true_grad=true_grad, stoch_grad=stoch_grad, proj=None if R == np.inf else proj, L=L, R=R
+    )
 
 
 def make_rastrigin(n: int, A: float = 10, sigma: float = 0.0) -> Tuple[Callable, Callable, Callable, float]:
@@ -44,22 +59,6 @@ def make_rastrigin(n: int, A: float = 10, sigma: float = 0.0) -> Tuple[Callable,
     L = 2 + 40 * np.pi**2
 
     return rastrigin, true_grad, stoch_grad, L
-
-
-# class LogisticRegression:
-
-#     def __init__(self, X: np.ndarray, y: np.ndarray):
-#         self.X = X
-#         self.y = y
-#         self.coef_ = np.random.normal(0, 0.001, size=X.shape[1])
-
-#     def loss(self):
-#         p = expit(self.X.T @ self.coef_)
-#         return -np.mean(self.y * np.log(p) + (1 - self.y) * np.log(1 - p))
-
-#     def loss_grad(self):
-#         p = expit(self.X.T @ self.coef_)
-#         return np.mean(self.X.T @ (p - self.y))
 
 
 def logistic_regression(X: np.ndarray, y: np.ndarray, R: float, batch_size: int = 16):

@@ -1,4 +1,3 @@
-from multiprocessing import Value
 import numpy as np
 from collections import defaultdict
 
@@ -57,14 +56,16 @@ def minimize(
         x_avg_t = eta_x / S_t
         F_avg = eta_f / S_t
 
-        if verbose and t % report_interval == 0:
-            print(
-                f"[Iter {t:6d}]  "
-                f"F(x)={f:8.5f} | "
-                f"F_avg(x)={F_avg:8.5f} | "
-                f"G_avg={G_avg:8.5} | "
-                f"Cert={cert_val:8.5f}"
-            )
+        if t % report_interval == 0:
+            if verbose:
+                print(
+                    f"[Iter {t:6d}]  "
+                    f"F(x)={f:8.5f} | "
+                    f"F_avg(x)={F_avg:8.5f} | "
+                    f"G_avg={G_avg:8.5} | "
+                    f"Cert={cert_val:8.5f}"
+                )
+
             results["f"].append(f)
             results["F_avg"].append(F_avg)
             results["G_avg"].append(G_avg)
