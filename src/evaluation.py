@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from typing import Dict, List, Literal
+from typing import Callable, Dict, List, Literal
 from mpl_toolkits.mplot3d import Axes3D  
 
 def plot_convergence(
@@ -73,9 +73,10 @@ def plot_convergence(
 
 def plot_2d_trace(
         results: Dict[str, List[float | np.ndarray]],
-        fun: callable,
+        fun: Callable,
         plot_type: Literal["3d", "contours"] = "contours",
-        title: str = "Optimization Trajectory on Function Landscape"
+        title: str = "Optimization Trajectory on Function Landscape",
+        x_min: np.ndarray | None = None
     ):
     assert "x" in results, "Results must contain 'x' for 2D trace plotting."
     assert "x_avg" in results, "Results must contain 'x_avg' for 2D trace plotting."
@@ -93,32 +94,32 @@ def plot_2d_trace(
     F_avg = np.array(results["F_avg"])
     f = np.array(results["f"])
 
-    x_min, x_max = np.min(sgd_trace[:, 0]), np.max(sgd_trace[:, 0])
-    y_min, y_max = np.min(sgd_trace[:, 1]), np.max(sgd_trace[:, 1])
+    x_min_bound, x_max_bound = np.min(sgd_trace[:, 0]), np.max(sgd_trace[:, 0])
+    y_min_bound, y_max_bound = np.min(sgd_trace[:, 1]), np.max(sgd_trace[:, 1])
 
     x_min_cert, x_max_cert = np.min(certified_trace[:, 0]), np.max(certified_trace[:, 0])
     y_min_cert, y_max_cert = np.min(certified_trace[:, 1]), np.max(certified_trace[:, 1])
 
-    x_min = min(x_min, x_min_cert)
-    x_max = max(x_max, x_max_cert)
-    y_min = min(y_min, y_min_cert)
-    y_max = max(y_max, y_max_cert)
+    x_min_bound = min(x_min_bound, x_min_cert)
+    x_max_bound = max(x_max_bound, x_max_cert)
+    y_min_bound = min(y_min_bound, y_min_cert)
+    y_max_bound = max(y_max_bound, y_max_cert)
 
-    print(f"SGD Trace X range: [{x_min:.2f}, {x_max:.2f}]")
-    print(f"SGD Trace Y range: [{y_min:.2f}, {y_max:.2f}]")
+    print(f"SGD Trace X range: [{x_min_bound:.2f}, {x_max_bound:.2f}]")
+    print(f"SGD Trace Y range: [{y_min_bound:.2f}, {y_max_bound:.2f}]")
     print(f"Certified Trace X range: [{x_min_cert:.2f}, {x_max_cert:.2f}]")
     print(f"Certified Trace Y range: [{y_min_cert:.2f}, {y_max_cert:.2f}]")
 
-    x_range = x_max - x_min
-    y_range = y_max - y_min
+    x_range = x_max_bound - x_min_bound
+    y_range = y_max_bound - y_min_bound
     padding = 0.1
-    x_min -= padding * x_range
-    x_max += padding * x_range
-    y_min -= padding * y_range
-    y_max += padding * y_range
+    x_min_bound -= padding * x_range
+    x_max_bound += padding * x_range
+    y_min_bound -= padding * y_range
+    y_max_bound += padding * y_range
 
-    x_grid, y_grid = np.meshgrid(np.linspace(x_min, x_max, 100), np.linspace(y_min, y_max, 100))
-    z_grid = np.array([[fun(np.array([x, y])) for x in np.linspace(x_min, x_max, 100)] for y in np.linspace(y_min, y_max, 100)])
+    x_grid, y_grid = np.meshgrid(np.linspace(x_min_bound, x_max_bound, 100), np.linspace(y_min_bound, y_max_bound, 100))
+    z_grid = np.array([[fun(np.array([x, y])) for x in np.linspace(x_min_bound, x_max_bound, 100)] for y in np.linspace(y_min_bound, y_max_bound, 100)])
 
     plt.figure(figsize=(10, 6))
 
@@ -127,6 +128,10 @@ def plot_2d_trace(
         ax.plot_surface(x_grid, y_grid, z_grid, cmap='viridis', alpha=0.8) #type: ignore
         ax.plot(sgd_trace[:, 0], sgd_trace[:, 1], f, label='SGD Trace', color='red')
         ax.plot(certified_trace[:, 0], certified_trace[:, 1], [fun(np.array([x, y])) for x, y in certified_trace], label='x_avg Trace', color='blue')
+        
+        if x_min is not None:
+            ax.scatter(x_min[0], x_min[1], fun(x_min), color='black', marker='*', s=100, label=r'$x^*$')
+            
         ax.set_xlabel('x[0]')
         ax.set_ylabel('x[1]')
         ax.set_zlabel('F(x)') #type: ignore
@@ -136,6 +141,10 @@ def plot_2d_trace(
         plt.colorbar(label='F(x)')
         plt.plot(sgd_trace[:, 0], sgd_trace[:, 1], label='SGD Trace', color='red')
         plt.plot(certified_trace[:, 0], certified_trace[:, 1], label='x_avg Trace', color='blue')
+        
+        if x_min is not None:
+            plt.scatter(x_min[0], x_min[1], color='black', marker='*', s=150, label=r'$x^*$')
+            
         plt.xlabel('x[0]')
         plt.ylabel('x[1]')
 
