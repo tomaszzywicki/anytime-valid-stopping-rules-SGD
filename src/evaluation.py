@@ -1,10 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from typing import Dict, List
-
+from typing import Dict, List, Literal
+from mpl_toolkits.mplot3d import Axes3D  
 
 def plot_convergence(
-    results: Dict[str, List[float]],
+    results: Dict[str, List[float | np.ndarray]],
     bound_metric: str,
     report_interval: int,
     f_opt: float = 0.0,
@@ -67,5 +67,79 @@ def plot_convergence(
     plt.title(title, fontsize=14)
     plt.grid(True, which="both", ls="--", alpha=0.3)
     plt.legend(fontsize=12)
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_2d_trace(
+        results: Dict[str, List[float | np.ndarray]],
+        fun: callable,
+        plot_type: Literal["3d", "contours"] = "contours",
+        title: str = "Optimization Trajectory on Function Landscape"
+    ):
+    assert "x" in results, "Results must contain 'x' for 2D trace plotting."
+    assert "x_avg" in results, "Results must contain 'x_avg' for 2D trace plotting."
+
+    assert all(isinstance(x, np.ndarray) and x.ndim == 1 for x in results["x"]), "All x values must be 1D numpy arrays."
+    assert all(isinstance(x_avg, np.ndarray) and x_avg.ndim == 1 for x_avg in results["x_avg"]), "All x_avg values must be 1D numpy arrays."
+
+    assert all(x.shape[0] == 2 for x in results["x"]), "All x values must be 2D for trace plotting." #type: ignore
+    assert all(x.shape[0] == 2 for x in results["x_avg"]), "All x_avg values must be 2D for trace plotting." #type: ignore 
+
+
+    sgd_trace = np.array(results["x"])
+    certified_trace = np.array(results["x_avg"])
+
+    F_avg = np.array(results["F_avg"])
+    f = np.array(results["f"])
+
+    x_min, x_max = np.min(sgd_trace[:, 0]), np.max(sgd_trace[:, 0])
+    y_min, y_max = np.min(sgd_trace[:, 1]), np.max(sgd_trace[:, 1])
+
+    x_min_cert, x_max_cert = np.min(certified_trace[:, 0]), np.max(certified_trace[:, 0])
+    y_min_cert, y_max_cert = np.min(certified_trace[:, 1]), np.max(certified_trace[:, 1])
+
+    x_min = min(x_min, x_min_cert)
+    x_max = max(x_max, x_max_cert)
+    y_min = min(y_min, y_min_cert)
+    y_max = max(y_max, y_max_cert)
+
+    print(f"SGD Trace X range: [{x_min:.2f}, {x_max:.2f}]")
+    print(f"SGD Trace Y range: [{y_min:.2f}, {y_max:.2f}]")
+    print(f"Certified Trace X range: [{x_min_cert:.2f}, {x_max_cert:.2f}]")
+    print(f"Certified Trace Y range: [{y_min_cert:.2f}, {y_max_cert:.2f}]")
+
+    x_range = x_max - x_min
+    y_range = y_max - y_min
+    padding = 0.1
+    x_min -= padding * x_range
+    x_max += padding * x_range
+    y_min -= padding * y_range
+    y_max += padding * y_range
+
+    x_grid, y_grid = np.meshgrid(np.linspace(x_min, x_max, 100), np.linspace(y_min, y_max, 100))
+    z_grid = np.array([[fun(np.array([x, y])) for x in np.linspace(x_min, x_max, 100)] for y in np.linspace(y_min, y_max, 100)])
+
+    plt.figure(figsize=(10, 6))
+
+    if plot_type == "3d":
+        ax = plt.subplot(111, projection='3d')
+        ax.plot_surface(x_grid, y_grid, z_grid, cmap='viridis', alpha=0.8) #type: ignore
+        ax.plot(sgd_trace[:, 0], sgd_trace[:, 1], f, label='SGD Trace', color='red')
+        ax.plot(certified_trace[:, 0], certified_trace[:, 1], [fun(np.array([x, y])) for x, y in certified_trace], label='x_avg Trace', color='blue')
+        ax.set_xlabel('x[0]')
+        ax.set_ylabel('x[1]')
+        ax.set_zlabel('F(x)') #type: ignore
+
+    elif plot_type == "contours":
+        plt.contourf(x_grid, y_grid, z_grid, levels=50, cmap='viridis')
+        plt.colorbar(label='F(x)')
+        plt.plot(sgd_trace[:, 0], sgd_trace[:, 1], label='SGD Trace', color='red')
+        plt.plot(certified_trace[:, 0], certified_trace[:, 1], label='x_avg Trace', color='blue')
+        plt.xlabel('x[0]')
+        plt.ylabel('x[1]')
+
+    plt.title(title)
+    plt.legend()
     plt.tight_layout()
     plt.show()
