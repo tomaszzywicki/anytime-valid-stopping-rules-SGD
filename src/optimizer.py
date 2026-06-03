@@ -15,7 +15,8 @@ def minimize(
     max_iter: int = 10_000_000,
     verbose: bool = True,
     report_interval: int = 100,
-    true_grad: callable = None
+    true_grad: callable = None,
+    save_trace: bool = False
 ):
     if stopping_criterion.requires_bounded_domain and proj is None:
         raise ValueError("This stopping criterion requires projection function (proj).")
@@ -70,6 +71,10 @@ def minimize(
             results["F_avg"].append(F_avg)
             results["G_avg"].append(G_avg)
             results["cert"].append(cert_val)
+
+            if save_trace:
+                results['x'].append(x)
+                results['x_avg'].append(x_avg_t)
 
         if is_stop:
             print(f"Ending at t={t}")

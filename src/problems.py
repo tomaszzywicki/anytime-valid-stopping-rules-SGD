@@ -1,6 +1,7 @@
 import numpy as np
 from typing import Tuple, Callable, Optional
 from scipy.special import expit
+from scipy.stats import ortho_group
 from dataclasses import dataclass
 
 
@@ -20,6 +21,12 @@ def _euclidean_projection(x: np.ndarray, center: np.ndarray, R: float) -> np.nda
     if norm > R:
         return center + diff / norm * R
     return x
+
+def generate_random_hessian(n_dim: int, min_eig: float = 0.1, max_eig: float = 10.0) -> np.ndarray:
+    eigenvalues = np.random.uniform(min_eig, max_eig, n_dim)
+    Lambda = np.diag(eigenvalues)
+    Q = ortho_group.rvs(dim=n_dim)
+    return Q @ Lambda @ Q.T
 
 
 def make_quadratic(H: np.ndarray, sigma: float, center: np.ndarray, R=np.inf):
